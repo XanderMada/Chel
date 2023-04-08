@@ -1,0 +1,46 @@
+name: ETL
+
+on: [ workflow_dispatch ]
+
+jobs:
+  etl:
+    name: 'ETL: Get Stats'
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        node: [ '14.x' ]
+        os: [ ubuntu-latest ]
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+
+      - name: Use Node ${{ matrix.node }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Cache dependencies
+        uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - uses: borales/actions-yarn@v3.0.0
+        with:
+          cmd: install
+
+      - uses: borales/actions-yarn@v3.0.0
+        with:
+          cmd: etl
+
+      - name: Update Stats Data
+        uses: Automattic/action-commit-to-branch@master
+        with:
+          branch: 'main'
+          commit_message: 'Update Stats Data'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
